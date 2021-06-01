@@ -21,12 +21,24 @@ def index():
 
 @app.route('/freedraw/<epi>', methods=['GET'])
 def freedraw(epi):
-    print(epi)
+    df_image = pd.DataFrame({'f_name': os.listdir(f'static/img/freedraw/cropped/{epi}')})
+
+    if not os.path.isdir(f'csv/freedraw/cropped/{epi}'):
+        os.mkdir(f'csv/freedraw/cropped/{epi}')
+
+    if not os.path.isfile(f'csv/freedraw/cropped/{epi}/{epi}.csv'):
+        pd.DataFrame({'f_name': [],
+                      'use_yn': []}).to_csv(f'csv/freedraw/cropped/{epi}/{epi}.csv')
+
+    df = pd.read_csv(f'csv/freedraw/cropped/{epi}/{epi}.csv')
+
+    df = pd.merge(df_image, df, how='left')
+    df['use_yn'] = df['use_yn'].fillna('Y')
 
     return render_template('frame.html',
                            epi=epi,
-                           file_name=os.listdir(f'static/img/freedraw/cropped/{epi}'),
-                           use_yn=['N', 'N', 'Y', 'N', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y', 'Y'],
+                           file_name=df['f_name'],
+                           use_yn=df['use_yn'],
                            enumerate=enumerate,
                            zip=zip,
                            next=next,
@@ -36,21 +48,16 @@ def freedraw(epi):
 @app.route("/save", methods=["POST"])
 def save():
     params = request.get_json()
-    print(params['epi'])
-    print(params['file_name_list'])
-    print(params['use_yn_list'])
+    # print(params['epi'])
+    # print(params['file_name_list'])
+    # print(params['use_yn_list'])
 
-    df = pd.DataFrame({'file_name_list': params['file_name_list'],
-                       'use_yn_list': params['use_yn_list']})
+    df = pd.DataFrame({'f_name': params['file_name_list'],
+                       'use_yn': params['use_yn_list']})
 
-    save_csv(df)
+    df.to_csv(f'csv/freedraw/cropped/{params["epi"]}/{params["epi"]}.csv')
 
-    return jsonify({'name': 'Alice', 'birth-year': 1986})
-
-
-def save_csv(df):
-    print(os.getcwd())
-    df.to_csv(f'/csv/use.csv')
+    return jsonify()
 
 
 if __name__ == '__main__':
